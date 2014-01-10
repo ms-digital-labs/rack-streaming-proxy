@@ -19,49 +19,47 @@ describe Rack::StreamingProxy do
       end
       run lambda { |env|
         raise "app error" if env["PATH_INFO"] =~ /boom/
-        [200, {"Content-Type" => "text/plain"}, "not proxied"]
+        [200, {"Content-Type" => "text/plain"}, ["not proxied"]]
       }
     end
   end
 
+  def app_path
+    File.expand_path("../app.ru", __FILE__)
+  end
+
+  def proxy_path
+    File.expand_path("../proxy.ru", __FILE__)
+  end
+
   before(:all) do
-    app_path = Rack::StreamingProxy.path("spec", "app.ru")
     @app_server = Servolux::Child.new(
-      # :command => "thin -R #{app_path} -p #{APP_PORT} start", # buffers!
-      :command => "rackup #{app_path} -p #{APP_PORT}",
-      :timeout => 30, # all specs should take <30 sec to run
+      :command => "rackup #{app_path} -p #{APP_PORT} ",
+      :timeout => 30,
       :suspend => 0.25
     )
-    puts "----- starting app server -----"
     @app_server.start
-    sleep 2 # give it a sec
-    puts "----- started app server -----"
+    sleep 2
   end
 
   after(:all) do
-    puts "----- shutting down app server -----"
     @app_server.stop
     @app_server.wait
-    puts "----- app server is stopped -----"
   end
 
+
   def with_proxy_server
-    proxy_path = Rack::StreamingProxy.path("spec", "proxy.ru")
     @proxy_server = Servolux::Child.new(
-      :command => "rackup #{proxy_path} -p #{PROXY_PORT}",
+      :command => "rackup #{proxy_path} -p #{PROXY_PORT} ",
       :timeout => 10,
       :suspend => 0.25
     )
-    puts "----- starting proxy server -----"
     @proxy_server.start
     sleep 2
-    puts "----- started proxy server -----"
     yield
   ensure
-    puts "----- shutting down proxy server -----"
     @proxy_server.stop
     @proxy_server.wait
-    puts "----- proxy server is stopped -----"
   end
 
   it "passes through to the rest of the stack if block returns false" do
@@ -80,36 +78,23 @@ describe Rack::StreamingProxy do
     get "/stream"
     last_response.should be_ok
     last_response.headers["Transfer-Encoding"].should == "chunked"
-    last_response.body.should =~ /^e\r\n~~~~~ 0 ~~~~~\n\r\n/
+    last_response.body.should =~ /^~~~~~ 0 ~~~~~/
   end
 
   # this is the most critical spec: it makes sure things are actually streamed, not buffered
   it "streams data from the app server to the client" do
-    @app = Rack::Builder.new do
-      use Rack::Lint
-      run lambda { |env|
-        body = []
-        Net::HTTP.start("localhost", PROXY_PORT) do |http|
-          http.request_get("/slow_stream") do |response|
-            response.read_body do |chunk|
-              body << "#{Time.now.to_i}\n"
-            end
+    with_proxy_server do
+      times = []
+      Net::HTTP.start("localhost", PROXY_PORT) do |http|
+        http.request_get("/slow_stream") do |response|
+          response.read_body do |chunk|
+            times << Time.now.to_i
           end
         end
-        [200, {"Content-Type" => "text/plain"}, body]
-      }
-    end
-
-    with_proxy_server do
-      get "/"
-      last_response.should be_ok
-      times = last_response.body.split("\n").map {|l| l.to_i}
-      unless (times.last - times.first) >= 2
-        violated "expected receive time of first chunk to be at least " +
-          "two seconds before the last chunk"
       end
-    end
 
+      (times.last - times.first).should >= 2
+    end
   end
 
   it "handles POST, PUT, and DELETE methods" do
@@ -136,7 +121,7 @@ describe Rack::StreamingProxy do
 
   it "raises a Rack::Proxy::StreamingProxy error when something goes wrong" do
     Rack::StreamingProxy::ProxyRequest.should_receive(:new).and_raise(RuntimeError.new("kaboom"))
-    lambda { get "/" }.should raise_error(Rack::StreamingProxy::Error, /proxy error.*kaboom/i)
+    lambda { get "/" }.should raise_error(Rack::StreamingProxy::ProxyError, /proxy error.*kaboom/i)
   end
 
   it "does not raise a Rack::Proxy error if the app itself raises something" do
@@ -146,13 +131,13 @@ describe Rack::StreamingProxy do
   it "preserves cookies" do
     set_cookie "foo"
     post "/env"
-    YAML.load(last_response.body)["HTTP_COOKIE"].should == "foo"
+    last_response.body.should include("HTTP_COOKIE: foo")
   end
 
   it "preserves authentication info" do
     basic_authorize "admin", "secret"
     post "/env"
-    YAML.load(last_response.body)["HTTP_AUTHORIZATION"].should == "Basic YWRtaW46c2VjcmV0\n"
+    last_response.body.should include("HTTP_AUTHORIZATION: Basic YWRtaW46c2VjcmV0")
   end
 
 end

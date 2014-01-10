@@ -18,6 +18,7 @@ Bones {
   version  Rack::StreamingProxy::VERSION
   ignore_file  '.gitignore'
   depend_on "rack", :version => ">= 1.0"
+  depend_on "servolux", :development => true
   depend_on "rack-test", :version => "~> 0.5.1", :development => true
   spec {
     opts ["--colour",  "--loadby mtime", "--reverse", "--diff unified"]

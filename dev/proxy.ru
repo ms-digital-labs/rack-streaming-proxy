@@ -4,6 +4,7 @@ require File.expand_path(
 use Rack::Reloader, 1
 # use Rack::CommonLogger # rackup already has commonlogger loaded
 use Rack::Lint
+use Rack::Chunked
 use Rack::StreamingProxy do |req|
   url = "http://localhost:4000#{req.path}"
   url << "?#{req.query_string}" unless req.query_string.empty?

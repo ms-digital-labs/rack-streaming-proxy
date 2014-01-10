@@ -82,7 +82,12 @@ protected
   end
 
   def extract_headers(response)
-    headers = response.each_header.reject{|k,v| k == "transfer-encoding" }
+    response.each_header do |k,v|
+      p k => v
+    end
+    headers = response.each_header.reject{|k,v|
+      k.downcase == "transfer-encoding"
+    }
     Hash[headers]
   end
 

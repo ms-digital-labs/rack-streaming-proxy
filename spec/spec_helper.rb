@@ -1,8 +1,10 @@
-require File.expand_path(
-  File.join(File.dirname(__FILE__), %w[.. lib rack streaming_proxy]))
+$:.unshift File.expand_path("../../lib", __FILE__)
 
+require "rack/streaming_proxy"
 require "rack/test"
+require "servolux"
+require "yaml"
 
-Spec::Runner.configure do |config|
+RSpec.configure do |config|
 end
 
