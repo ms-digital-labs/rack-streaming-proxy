@@ -30,7 +30,7 @@ I've included a simple streamer app for testing and development.
 Thanks to:
 
 * Tom Lea (cwninja) for Rack::Proxy (http://gist.github.com/207938)
-* Tim Pease for bones, servolux, &c
+* Tim Pease for bones, &c
 
 == SYNOPSIS:
 
@@ -43,10 +43,6 @@ Thanks to:
       "http://another_server#{request.path}"
     end
   end
-
-== REQUIREMENTS:
-
-* servolux (gem install servolux)
 
 == INSTALL:
 

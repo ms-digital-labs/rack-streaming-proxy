@@ -1,3 +1,7 @@
+require "rack"
+require "net/http"
+require "uri"
+
 module Rack
   class StreamingProxy
 
@@ -69,8 +73,7 @@ module Rack
       req = Rack::Request.new(env)
       return app.call(env) unless uri = request_uri.call(req)
       begin # only want to catch proxy errors, not app errors
-        proxy = ProxyRequest.new(req, uri)
-        [proxy.status, proxy.headers, proxy]
+        ProxyRequest.call(req, uri)
       rescue => e
         msg = "Proxy error when proxying to #{uri}: #{e.class}: #{e.message}"
         env["rack.errors"].puts msg
@@ -88,10 +91,4 @@ module Rack
 
 end
 
-require "rack"
-require "servolux"
-require "net/http"
-require "uri"
-
-Rack::StreamingProxy.require_all_libs_relative_to(__FILE__)
-
+require "streaming_proxy/proxy_request"

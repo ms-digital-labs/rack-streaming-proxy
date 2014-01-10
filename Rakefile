@@ -12,13 +12,12 @@ task 'gem:release' => 'spec:specdoc'
 
 Bones {
   name  'rack-streaming-proxy'
-  authors  'Nathan Witmer'
+  authors  'Nathan Witmer', 'Tom Lea'
   email  'nwitmer@gmail.com'
   url  'http://github.com/zerowidth/rack-streaming-proxy'
   version  Rack::StreamingProxy::VERSION
   ignore_file  '.gitignore'
   depend_on "rack", :version => ">= 1.0"
-  depend_on "servolux", :version => "~> 0.8.1"
   depend_on "rack-test", :version => "~> 0.5.1", :development => true
   spec {
     opts ["--colour",  "--loadby mtime", "--reverse", "--diff unified"]
