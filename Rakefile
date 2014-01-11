@@ -1,28 +1,5 @@
-begin
-  require 'bones'
-rescue LoadError
-  abort '### Please install the "bones" gem ###'
-end
+require "bundler/gem_tasks"
+require "rspec/core/rake_task"
 
-ensure_in_path 'lib'
-require 'rack/streaming_proxy'
-
-task :default => 'spec:specdoc'
-task 'gem:release' => 'spec:specdoc'
-
-Bones {
-  name  'rack-streaming-proxy'
-  authors  'Nathan Witmer', 'Tom Lea'
-  email  'nwitmer@gmail.com'
-  url  'http://github.com/zerowidth/rack-streaming-proxy'
-  version  Rack::StreamingProxy::VERSION
-  ignore_file  '.gitignore'
-  depend_on "rack", :version => ">= 1.0"
-  depend_on "servolux", :development => true
-  depend_on "rack-test", :version => "~> 0.5.1", :development => true
-  spec {
-    opts ["--colour",  "--loadby mtime", "--reverse", "--diff unified"]
-  }
-  enable_sudo
-}
-
+RSpec::Core::RakeTask.new
+task default: :spec
