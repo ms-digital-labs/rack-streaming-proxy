@@ -3,7 +3,7 @@ class Streamer
 
   def initialize(sleep=0.05)
     @sleep = sleep
-    @strings = 6.times.collect {|n| "~~~~~ #{n} ~~~~~\n" * 1000 }
+    @strings = 5.times.collect {|n| "~~~~~ #{n} ~~~~~\n" }
   end
 
   def call(env)
@@ -13,9 +13,8 @@ class Streamer
   end
 
   def each
-    #@strings.each do |chunk|
-    while true
-      yield "Hello!\n"
+    @strings.each do |chunk|
+      yield chunk
       sleep @sleep
     end
   end
