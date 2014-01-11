@@ -38,7 +38,7 @@ describe Rack::StreamingProxy do
 
   before(:all) do
     @app_server = Servolux::Child.new(
-      :command => "rackup #{app_path} -s puma -p #{APP_PORT} ",
+      :command => "rackup #{app_path} -s puma -p #{APP_PORT} &>/dev/null",
       :timeout => 30,
       :suspend => 0.25
     )
@@ -54,7 +54,7 @@ describe Rack::StreamingProxy do
 
   def with_proxy_server
     @proxy_server = Servolux::Child.new(
-      :command => "rackup #{proxy_path} -s puma -p #{PROXY_PORT} ",
+      :command => "rackup #{proxy_path} -s puma -p #{PROXY_PORT} &>/dev/null",
       :timeout => 10,
       :suspend => 0.25
     )
