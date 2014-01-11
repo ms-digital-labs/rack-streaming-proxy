@@ -9,6 +9,7 @@ describe Rack::StreamingProxy do
   def app
     @app ||= Rack::Builder.new do
       use Rack::Lint
+      use Rack::Chunked
       use Rack::StreamingProxy do |req|
         unless req.path.start_with?("/not_proxied")
           url = "http://localhost:#{APP_PORT}#{req.path}"
@@ -17,9 +18,12 @@ describe Rack::StreamingProxy do
           url
         end
       end
-      run lambda { |env|
-        raise "app error" if env["PATH_INFO"] =~ /boom/
-        [200, {"Content-Type" => "text/plain"}, ["not proxied"]]
+      run Rack::Builder.app{
+        use Rack::ContentLength
+        run lambda { |env|
+          raise "app error" if env["PATH_INFO"] =~ /boom/
+          [200, {"Content-Type" => "text/plain"}, ["not proxied"]]
+        }
       }
     end
   end
