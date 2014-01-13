@@ -2,11 +2,11 @@ rack-streaming-proxy
     by Nathan Witmer <nwitmer@gmail.com>
     http://github.com/zerowidth/rack-streaming-proxy
 
-== DESCRIPTION:
+## DESCRIPTION:
 
 Streaming proxy for Rack, the rainbows to Rack::Proxy's unicorn.
 
-== FEATURES/PROBLEMS:
+## FEATURES/PROBLEMS:
 
 Provides a transparent streaming proxy to be used as rack middleware.
 
@@ -19,36 +19,34 @@ for example when handling large file requests that could be proxied
 directly but need to be authenticated against the rest of your middleware
 stack.
 
-Note that this will not work well with EventMachine. EM buffers the entire
-rack response before sending it to the client. When testing, try
-mongrel (via rackup) or passenger, rather than the EM-based thin. See
-http://groups.google.com/group/thin-ruby/browse_thread/thread/4762f8f851b965f6
-for more discussion.
+Please take care to use a server that supports streaming rack responses. We use
+[puma](http://puma.io/) within the test suite, as it's known to work well.
 
 I've included a simple streamer app for testing and development.
 
 Thanks to:
 
 * Tom Lea (cwninja) for Rack::Proxy (http://gist.github.com/207938)
-* Tim Pease for bones, &c
 
-== SYNOPSIS:
+## SYNOPSIS:
 
-  require "rack/streaming_proxy"
+```ruby
+require "rack/streaming_proxy"
 
-  use Rack::StreamingProxy do |request|
-    # inside the request block, return the full URI to redirect the request to,
-    # or nil/false if the request should continue on down the middleware stack.
-    if request.path.start_with?("/proxy")
-      "http://another_server#{request.path}"
-    end
+use Rack::StreamingProxy do |request|
+  # inside the request block, return the full URI to redirect the request to,
+  # or nil/false if the request should continue on down the middleware stack.
+  if request.path.start_with?("/proxy")
+    "http://another_server#{request.path}"
   end
+end
+```
 
-== INSTALL:
+## INSTALL:
 
 * sudo gem install rack-streaming-proxy --source http://gemcutter.org
 
-== LICENSE:
+## LICENSE:
 
 (The MIT License)
 
