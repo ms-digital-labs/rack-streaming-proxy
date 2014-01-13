@@ -30,7 +30,7 @@ map "/stream" do
 end
 
 map "/slow_stream" do
-  run Streamer.new(0.5)
+  run Streamer.new(0.25)
 end
 
 map "/env" do

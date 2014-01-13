@@ -14,7 +14,6 @@ describe Rack::StreamingProxy do
         unless req.path.start_with?("/not_proxied")
           url = "http://localhost:#{APP_PORT}#{req.path}"
           url << "?#{req.query_string}" unless req.query_string.empty?
-          # STDERR.puts "PROXYING to #{url}"
           url
         end
       end
@@ -37,33 +36,27 @@ describe Rack::StreamingProxy do
   end
 
   before(:all) do
-    @app_server = Servolux::Child.new(
-      :command => "rackup #{app_path} -s puma -p #{APP_PORT} &>/dev/null",
-      :timeout => 30,
-      :suspend => 0.25
-    )
-    @app_server.start
-    sleep 2
+    @app_server = Thread.start do
+      Rack::Server.start(config: app_path, Port: APP_PORT, server: 'puma')
+    end
+    wait_for_server(APP_PORT)
   end
 
   after(:all) do
-    @app_server.stop
-    @app_server.wait
+    @app_server.kill
+    @app_server.join
   end
 
 
   def with_proxy_server
-    @proxy_server = Servolux::Child.new(
-      :command => "rackup #{proxy_path} -s puma -p #{PROXY_PORT} &>/dev/null",
-      :timeout => 10,
-      :suspend => 0.25
-    )
-    @proxy_server.start
-    sleep 2
+    proxy_server = Thread.start do
+      Rack::Server.start(config: proxy_path, Port: PROXY_PORT, server: 'puma')
+    end
+    wait_for_server(PROXY_PORT)
     yield
   ensure
-    @proxy_server.stop
-    @proxy_server.wait
+    proxy_server.kill
+    proxy_server.join
   end
 
   it "passes through to the rest of the stack if block returns false" do
@@ -88,16 +81,20 @@ describe Rack::StreamingProxy do
   # this is the most critical spec: it makes sure things are actually streamed, not buffered
   it "streams data from the app server to the client" do
     with_proxy_server do
-      times = []
-      Net::HTTP.start("localhost", PROXY_PORT) do |http|
-        http.request_get("/slow_stream") do |response|
-          response.read_body do |chunk|
-            times << Time.now.to_i
+      10.times do
+        times = []
+        Net::HTTP.start("localhost", PROXY_PORT) do |http|
+          http.request_get("/slow_stream") do |response|
+            response.read_body do |chunk|
+              times << Time.now.to_f
+            end
           end
         end
-      end
 
-      (times.last - times.first).should >= 2
+        next unless times.count > 4
+        (times.last - times.first).should >= 1
+        break
+      end
     end
   end
 
