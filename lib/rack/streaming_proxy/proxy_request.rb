@@ -10,6 +10,7 @@ class Rack::StreamingProxy::ProxyRequest
     Referer
     User-Agent
     X-Requested-With
+    Host
   ]
 
   def self.call(request, uri)

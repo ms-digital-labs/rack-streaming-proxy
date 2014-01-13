@@ -115,6 +115,11 @@ describe Rack::StreamingProxy do
     last_response.should =~ /HTTP_X_FORWARDED_FOR: 127.0.0.1/
   end
 
+  it "forwards the host header" do
+    get "http://foo.example.com/env", {}
+    last_response.should =~ /HTTP_HOST: foo.example.com/
+  end
+
   it "preserves the post body" do
     post "/env", "foo" => "bar"
     last_response.body.should =~ /rack.request.form_vars: foo=bar/
