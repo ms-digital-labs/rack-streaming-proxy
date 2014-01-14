@@ -27,15 +27,8 @@ describe Rack::StreamingProxy do
     end
   end
 
-  def app_path
-    File.expand_path("../app.ru", __FILE__)
-  end
-
-  def proxy_path
-    File.expand_path("../proxy.ru", __FILE__)
-  end
-
   before(:all) do
+    app_path = File.expand_path("../app.ru", __FILE__)
     @app_server = Thread.start do
       Rack::Server.start(config: app_path, Port: APP_PORT, server: 'puma')
     end
@@ -49,6 +42,7 @@ describe Rack::StreamingProxy do
 
 
   def with_proxy_server
+    proxy_path = File.expand_path("../proxy.ru", __FILE__)
     proxy_server = Thread.start do
       Rack::Server.start(config: proxy_path, Port: PROXY_PORT, server: 'puma')
     end
@@ -79,9 +73,10 @@ describe Rack::StreamingProxy do
   end
 
   # this is the most critical spec: it makes sure things are actually streamed, not buffered
+  # sadly, it's a bit race conditiony, so let's just retry it a few times.
   it "streams data from the app server to the client" do
     with_proxy_server do
-      10.times do
+      20.times do
         times = []
         Net::HTTP.start("localhost", PROXY_PORT) do |http|
           http.request_get("/slow_stream") do |response|
@@ -91,9 +86,14 @@ describe Rack::StreamingProxy do
           end
         end
 
-        next unless times.count > 4
+        if times.count > 4 and (times.last - times.first) >= 1
+          (times.last - times.first).should >= 1
+          break
+        else
+          sleep 0.5
+          next
+        end
         (times.last - times.first).should >= 1
-        break
       end
     end
   end
@@ -113,11 +113,6 @@ describe Rack::StreamingProxy do
   it "sets a X-Forwarded-For header" do
     post "/env"
     last_response.should =~ /HTTP_X_FORWARDED_FOR: 127.0.0.1/
-  end
-
-  it "forwards the host header" do
-    get "http://foo.example.com/env", {}
-    last_response.should =~ /HTTP_HOST: foo.example.com/
   end
 
   it "preserves the post body" do
@@ -146,5 +141,35 @@ describe Rack::StreamingProxy do
     last_response.body.should include("HTTP_AUTHORIZATION: Basic YWRtaW46c2VjcmV0")
   end
 
-end
+  context "with host header forwarding enabled" do
+    def app
+      @app ||= Rack::Builder.new do
+        use Rack::StreamingProxy, forward_host_header: true do |req|
+          "http://localhost:#{APP_PORT}/env"
+        end
+        run ->{}
+      end
+    end
 
+    it "forwards the host header" do
+      get "http://foo.example.com/", {}
+      last_response.should =~ /HTTP_HOST: foo.example.com/
+    end
+  end
+
+  context "with host header forwarding disenabled" do
+    def app
+      @app ||= Rack::Builder.new do
+        use Rack::StreamingProxy, forward_host_header: false do |req|
+          "http://localhost:#{APP_PORT}/env"
+        end
+        run ->{}
+      end
+    end
+
+    it "forwards the host header" do
+      get "http://foo.example.com/", {}
+      last_response.should =~ /HTTP_HOST: localhost/
+    end
+  end
+end

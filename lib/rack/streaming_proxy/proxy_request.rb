@@ -10,11 +10,10 @@ class Rack::StreamingProxy::ProxyRequest
     Referer
     User-Agent
     X-Requested-With
-    Host
   ]
 
-  def self.call(request, uri)
-    new(request, uri).call
+  def self.call(request, uri, options = {})
+    new(request, uri, options).call
   end
 
   def call
@@ -24,8 +23,14 @@ class Rack::StreamingProxy::ProxyRequest
 protected
   attr_reader :request, :uri
 
-  def initialize(request, uri)
+  def initialize(request, uri, forward_host_header: false)
     @request, @uri = request, URI.parse(uri)
+    @forwardable_headers = FORWARDABLE_HEADERS
+    forward_host! if forward_host_header
+  end
+
+  def forward_host!
+    @forwardable_headers |= %w[Host]
   end
 
   def fiber
@@ -57,7 +62,7 @@ protected
       proxy_request.content_type = request.content_type
     end
 
-    FORWARDABLE_HEADERS.each do |header|
+    @forwardable_headers.each do |header|
       key = "HTTP_#{header.upcase.gsub('-', '_')}"
       proxy_request[header] = request.env[key] if request.env[key]
     end

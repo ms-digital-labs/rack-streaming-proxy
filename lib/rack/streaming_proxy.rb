@@ -22,9 +22,10 @@ module Rack
     #   end
     #
     # Most headers, request body, and HTTP method are preserved.
-    def initialize(app, &block)
+    def initialize(app, options = {}, &block)
       @request_uri = block
       @app = app
+      @options = options
     end
 
     def call(env)
@@ -38,7 +39,7 @@ module Rack
 
   protected
     def proxy_request_to(req, uri)
-      ProxyRequest.call(req, uri)
+      ProxyRequest.call(req, uri, @options)
     rescue => e
       msg = "Proxy error when proxying to #{uri}: #{e.class}: #{e.message}"
       req.env["rack.errors"].puts msg
