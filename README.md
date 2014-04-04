@@ -1,32 +1,15 @@
-rack-streaming-proxy
-    by Nathan Witmer <nwitmer@gmail.com>
-    http://github.com/zerowidth/rack-streaming-proxy
-
 ## DESCRIPTION:
-
 Streaming proxy for Rack, the rainbows to Rack::Proxy's unicorn.
 
-## FEATURES/PROBLEMS:
-
+## FEATURES:
 Provides a transparent streaming proxy to be used as rack middleware.
 
 * Streams the response from the downstream server to minimize memory usage
+* Uses fibers, which is seriously cool
 * Handles chunked encoding if used
-* Proxies GET/PUT/POST/DELETE, XHR, and cookies
-
-Use this when you need to have the response streamed back to the client,
-for example when handling large file requests that could be proxied
-directly but need to be authenticated against the rest of your middleware
-stack.
-
-Please take care to use a server that supports streaming rack responses. We use
-[puma](http://puma.io/) within the test suite, as it's known to work well.
-
-I've included a simple streamer app for testing and development.
-
-Thanks to:
-
-* Tom Lea (cwninja) for Rack::Proxy (http://gist.github.com/207938)
+* Uses fibers
+* Proxies ALL OF THE THINGS
+* Uses fibers
 
 ## SYNOPSIS:
 
@@ -41,10 +24,6 @@ use Rack::StreamingProxy do |request|
   end
 end
 ```
-
-## INSTALL:
-
-* sudo gem install rack-streaming-proxy --source http://gemcutter.org
 
 ## LICENSE:
 
